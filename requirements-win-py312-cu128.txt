@@ -1,0 +1,68 @@
+# Python 3.12 x64 / Windows / NVIDIA CUDA 12.8
+# 目标项目: SocAIty/Retrieval-based-Voice-Conversion-FastAPI (原始 RVC 代码)
+#
+# 为什么不用仓库自带的 requirements.txt:
+#   1) 第一行 tensorflow-rocm 是 Linux/ROCm 专用包，Windows 装不上;
+#   2) numpy==1.23.5 / numba==0.56.4 / llvmlite==0.39 / gradio==3.34 / faiss-cpu==1.7.3
+#      这一套只支持 Python 3.10，Python 3.12 无可用轮子;
+#   3) 依赖版本组合来自实测可用的一套 torch cu128 环境（torch 2.7.1+cu128 + numpy 1.26.4
+#      + librosa 0.10.2 + fastapi<0.100 + pydantic<2），已在 Windows + py3.12 验证跑通。
+#
+# 安装分三步(在项目根目录执行):
+#   Step1  torch / torchaudio 必须单独先装，否则会被后面的依赖解析降级成 CPU 版:
+#          python -m pip install torch==2.7.1+cu128 torchaudio==2.7.1+cu128 --index-url https://mirrors.nju.edu.cn/pytorch/whl/cu128 --extra-index-url https://mirrors.pku.edu.cn/pypi/simple
+#   Step2  python -m pip install -r requirements-win-py312-cu128.txt
+#   Step3  fairseq 需要从源码编译(依赖本机 MSVC 14.44 + 已装好的 torch/numpy):
+#          python -m pip install Cython
+#          python -m pip install fairseq==0.12.2 --no-build-isolation --no-deps
+
+--extra-index-url https://mirrors.pku.edu.cn/pypi/simple
+
+# 打包工具。Gradio 3.14 仍会 import pkg_resources，需要保留提供它的最后一代 setuptools
+setuptools>=75.0,<81
+wheel>=0.45,<1
+packaging>=24.0
+
+# 项目直接依赖
+av>=15.1.0,<16
+einops>=0.8.0,<1
+faiss-cpu>=1.13.0,<2
+ffmpeg-python>=0.2.0,<1
+librosa>=0.10.2,<0.11
+local-attention>=1.11.0,<2
+matplotlib>=3.8.2,<4
+networkx>=3.2.0,<4
+numpy>=1.26.4,<2
+onnxruntime-gpu>=1.19.2,<1.20
+praat-parselmouth>=0.4.5,<1
+PyYAML>=6.0.1
+scikit-learn>=1.6.0,<2
+scipy>=1.13.1,<2
+soundfile>=0.13.0,<1
+tqdm>=4.67.0,<5
+python-dotenv>=1.0.0
+ffmpy==0.3.1
+
+# Gradio 3.14 API 兼容组合(仓库代码用的是旧版组件/事件/请求行为)
+gradio>=3.14.0,<3.15
+altair>=4.2.0,<5
+anyio>=3.6.2,<4
+fastapi>=0.88.0,<0.100
+httpx>=0.23.0,<0.24
+pydantic>=1.10.13,<2
+starlette>=0.22.0,<0.28
+uvicorn>=0.20.0,<0.23
+websockets>=10.4,<11
+
+# 原始 RVC 推理链专属(新版本 RVC 已用 transformers/torchfcpe 替换，此仓库仍是老实现)
+Cython>=0.29,<4
+pyworld>=0.3.2
+
+# 下面两个必须单独装，不能直接写进本文件:
+#   Step4  python -m pip install resampy
+#          python -m pip install torchcrepe==0.0.20 --no-deps
+#          (torchcrepe 0.0.20 强依赖 librosa==0.9.1，与本项目 librosa 0.10.2 冲突，
+#           实测其代码只用 librosa.resample，与 0.10.x 兼容，故跳过依赖安装)
+#   Step5  python -m pip install fairseq==0.12.2 --no-build-isolation --no-deps
+#          (需本机 MSVC 14.44 编译 Cython 模块，且不能让隔离环境装 numpy 2.x，
+#           否则编译产物与运行时 numpy 1.26 ABI 不一致)
